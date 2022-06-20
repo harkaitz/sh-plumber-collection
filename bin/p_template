@@ -1,0 +1,127 @@
+#!/bin/sh -e
+#L:
+#L:  MIT License
+#L:  
+#l:  Bug reports, feature requests to gemini|https://harkadev.com/oss
+#l:  Copyright (c) 2022 Harkaitz Agirre, harkaitz.aguirre@gmail.com
+#L:
+#L:  Permission is hereby granted, free of charge, to any person obtaining
+#L:  a copy of this software and associated documentation files (the
+#L:  "Software"), to deal in the Software without restriction, including
+#L:  without limitation the rights to use, copy, modify, merge, publish,
+#L:  distribute, sublicense, and/or sell copies of the Software, and to
+#L:  permit persons to whom the Software is furnished to do so, subject to
+#L:  the following conditions:
+#L:
+#L:  The above copyright notice and this permission notice shall be
+#L:  included in all copies or substantial portions of the Software.
+#L:
+#L:  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+#L:  EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+#L:  MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+#L:  NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+#L:  LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+#L:  OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+#L:  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+##:
+#h: Usage: $0 [OPTS...] [TEMPLATE]
+#h:
+#h: ... -v      : Show configuration.
+#h: ... -o FILE : Output file.
+#h: ... -b      : Batch mode, not interactive.
+##:
+. p_show
+p_template() {
+    local OPTIND optopt P_TEMPLATE_OUT= P_TEMPLATE_BATCH=
+    ## Parse command line arguments.
+    while getopts "vo:b" optopt; do # OPTARG
+        case $optopt in
+            v)  p_template_show_variables; return 0;;
+            o)  P_TEMPLATE_OUT="${OPTARG}" ;;
+            b)  P_TEMPLATE_BATCH="y" ;;
+            \?) return 1;;
+        esac
+    done
+    shift $(( $OPTIND - 1 ))
+    ## Make operations.
+    if test -e "${TEMPLATE_DIRECTORY}"/"${1}"; then
+        local sel="${1}"
+    elif test -n "${P_TEMPLATE_BATCH}"; then
+        p_show "Template ${sel} not found."
+        return 1
+    else
+        local lst="`p_template_list "${1}"`"
+        local lst="${lst:-`p_template_list`}"
+        local sel="`echo "${lst}" | p_menu "Template"`"
+    fi
+    if test -n "${sel}"; then
+        p_template_exec "${sel}" | p_template_cat
+    else
+        return 1
+    fi
+}
+p_template_show_variables() {
+    printf '%-25s : %s\n' \
+           TEMPLATE_DIRECTORY "${TEMPLATE_DIRECTORY}"
+}
+p_template_calc_variables() {
+    TEMPLATE_DIRECTORY="${TEMPLATE_DIRECTORY:-${HOME}/Templates}"
+}
+## -----------------------------------------------------------------------------
+p_template_list() {
+    local pwd="`pwd`"
+    if test -d "${TEMPLATE_DIRECTORY}"; then
+        cd "${TEMPLATE_DIRECTORY}"
+        find . -type f -iregex ".*${1}" | sed 's|^\./||'
+        cd "${pwd}"
+    fi
+}
+p_template_exec() {
+    local file="${TEMPLATE_DIRECTORY}"/"${1}"
+    case "${file}" in
+        *) cat "${file}";;
+    esac
+}
+p_template_cat() {
+    if test -n "${P_TEMPLATE_OUT}"; then
+        cat > "${P_TEMPLATE_OUT}"
+    else
+        local text="`cat`"
+        echo "${text}" | xclip -selection "clipboard"
+        echo "${text}" | xclip -selection "primary"
+        echo "${text}" | xclip -selection "secondary"
+        if test -t 1 || test @"${P_MODE}" = @"display"; then
+            p_show "Copied `echo "${text}" | wc -c` bytes to the clipboard"
+        else
+            echo "${text}"
+        fi
+    fi
+}
+
+
+
+## -----------------------------------------------------------------------------
+p_template_calc_variables
+SCRNAME="`basename "$0"`"
+if test @"${SCRNAME}" = @"p_template";then
+    case "${1}" in
+        -h|--help)
+            sed -n 's/^ *#h: \{0,1\}//p' "$0" | sed "s|\\\$0|${SCRNAME}|g"
+            echo ""
+            sed -n 's/^ *#l: \{0,2\}//p' "$0"
+            ;;
+        '')
+            p_template ".*"
+            ;;
+        plumbs)
+            if test -n "$2" && test -n "`p_template_list "$2"`"; then
+                echo "Expand template."
+            else
+                echo "List templates."
+            fi
+            ;;
+        *)
+            p_template "$@"
+            ;;
+    esac
+fi
