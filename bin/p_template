@@ -31,6 +31,7 @@
 #h: ... -b      : Batch mode, not interactive.
 ##:
 . p_show
+. p_edit
 p_template() {
     local OPTIND optopt P_TEMPLATE_OUT= P_TEMPLATE_BATCH=
     ## Parse command line arguments.
@@ -78,18 +79,18 @@ p_template_list() {
 }
 p_template_exec() {
     local file="${TEMPLATE_DIRECTORY}"/"${1}"
-    case "${file}" in
-        *) cat "${file}";;
-    esac
+    if test -x "${file}"; then
+        "${file}"
+    else
+        cat "${file}"
+    fi
 }
 p_template_cat() {
     if test -n "${P_TEMPLATE_OUT}"; then
         cat > "${P_TEMPLATE_OUT}"
     else
         local text="`cat`"
-        echo "${text}" | xclip -selection "clipboard"
-        echo "${text}" | xclip -selection "primary"
-        echo "${text}" | xclip -selection "secondary"
+        echo "${text}" | clip -
         if test -t 1 || test @"${P_MODE}" = @"display"; then
             p_show "Copied `echo "${text}" | wc -c` bytes to the clipboard"
         else
@@ -114,9 +115,7 @@ if test @"${SCRNAME}" = @"p_template";then
             p_template ".*"
             ;;
         plumbs)
-            if test -n "$2" && test -n "`p_template_list "$2"`"; then
-                echo "Expand template."
-            else
+            if test ! -n "$2" && test -n "${P_IS_EDITOR}"; then
                 echo "List templates."
             fi
             ;;

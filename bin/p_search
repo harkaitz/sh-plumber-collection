@@ -96,7 +96,7 @@ if test @"${SCRNAME}" = @"p_search";then
             sed -n 's/^ *#l: \{0,2\}//p' "$0"
             ;;
         plumbs)
-            case "${2}" in *://*) exit 0;; esac
+            case "${2}" in ''|*://*) exit 0;; esac
             if test -e "${2}"; then exit 0; fi
             case "`printf '%s' "${2}" | wc -l`" in
                 0) echo "Search on the internet.";;
