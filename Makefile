@@ -1,15 +1,19 @@
 DESTDIR     =
 PREFIX      =/usr/local
-SCRIPTS_BIN =$(shell test ! -d bin || find bin -executable -type f)
-MANPAGES_1  =$(shell test ! -d man || find man -iregex '.*\.1$$')
 all:
 clean:
 install:
-    ifneq ($(SCRIPTS_BIN),)
+## -- license --
+ifneq ($(PREFIX),)
+install: install-license
+install-license: LICENSE
+	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/sh-plumber-collection
+	cp LICENSE $(DESTDIR)$(PREFIX)/share/doc/sh-plumber-collection
+endif
+## -- license --
+## -- install-sh --
+install: install-sh
+install-sh:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
-	cp $(SCRIPTS_BIN) $(DESTDIR)$(PREFIX)/bin
-    endif
-    ifneq ($(MANPAGES_1),)
-	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
-	cp $(MANPAGES_1) $(DESTDIR)$(PREFIX)/share/man/man1
-    endif
+	cp bin/p_search bin/p_pass bin/p_nsxiv bin/p_mpv bin/p_pcmanfm bin/p_xpdf bin/p_mupdf bin/p_gimp bin/p_pipe-viewer bin/p_acroread bin/p_less bin/p_tor bin/p_newdir bin/p_template bin/p_firefox bin/p_scratch  $(DESTDIR)$(PREFIX)/bin
+## -- install-sh --
